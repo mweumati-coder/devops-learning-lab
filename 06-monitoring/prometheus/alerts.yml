@@ -1,0 +1,20 @@
+groups:
+  - name: lab-app
+    rules:
+      - alert: AppDown
+        expr: up{job="lab-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "lab-app is down"
+          description: "Prometheus has not been able to scrape lab-app for 1 minute."
+
+      - alert: HighRequestRate
+        expr: rate(app_requests_total[1m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "lab-app request rate is high"
+          description: "More than 50 requests per second for 2 minutes."

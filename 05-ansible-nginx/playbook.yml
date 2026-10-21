@@ -1,0 +1,64 @@
+---
+- name: Configure web servers
+  hosts: webservers
+  become: true
+
+  vars:
+    site_name: devops-lab
+    site_message: "Configured by Ansible"
+
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create web root
+      ansible.builtin.file:
+        path: "/var/www/{{ site_name }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    - name: Deploy index page from template
+      ansible.builtin.template:
+        src: index.html.j2
+        dest: "/var/www/{{ site_name }}/index.html"
+        owner: www-data
+        group: www-data
+        mode: "0644"
+
+    - name: Deploy nginx site config
+      ansible.builtin.template:
+        src: site.conf.j2
+        dest: "/etc/nginx/sites-available/{{ site_name }}"
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Enable the site
+      ansible.builtin.file:
+        src: "/etc/nginx/sites-available/{{ site_name }}"
+        dest: "/etc/nginx/sites-enabled/{{ site_name }}"
+        state: link
+      notify: Reload nginx
+
+    - name: Disable the default site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
+
+    - name: Ensure nginx is running and starts on boot
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
